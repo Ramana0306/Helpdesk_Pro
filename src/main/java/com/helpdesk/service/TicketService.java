@@ -16,12 +16,10 @@ public class TicketService {
 
     private final TicketRepository ticketRepository;
     private final UserRepository userRepository;
-    private final EmailService emailService;
 
-    public TicketService(TicketRepository ticketRepository, UserRepository userRepository, EmailService emailService) {
+    public TicketService(TicketRepository ticketRepository, UserRepository userRepository) {
         this.ticketRepository = ticketRepository;
         this.userRepository = userRepository;
-        this.emailService = emailService;
     }
 
     public List<Ticket> getAllTickets() {
@@ -42,23 +40,12 @@ public class TicketService {
             ticket.setStatus("OPEN");
         }
 
-        // Generate ticket ID
         ticket.setTicketId("TKT-" + System.currentTimeMillis());
 
         Ticket saved = ticketRepository.save(ticket);
 
-        // Send email notification
-        try {
-            if (user.getEmail() != null && !user.getEmail().isEmpty()) {
-                emailService.sendTicketCreatedEmail(
-                    user.getEmail(),
-                    saved.getTicketId(),
-                    saved.getTitle()
-                );
-            }
-        } catch (Exception e) {
-            System.err.println("⚠️ Email notification failed (non-critical): " + e.getMessage());
-        }
+        // Log notification (no email - just console)
+        System.out.println("📧 TICKET CREATED: " + saved.getTicketId() + " by " + user.getEmail());
 
         return saved;
     }
@@ -89,19 +76,7 @@ public class TicketService {
 
         Ticket saved = ticketRepository.save(ticket);
 
-        // Send email notification
-        try {
-            if (saved.getCreatedBy() != null && saved.getCreatedBy().getEmail() != null) {
-                emailService.sendTicketAssignedEmail(
-                    saved.getCreatedBy().getEmail(),
-                    saved.getTicketId(),
-                    saved.getTitle(),
-                    engineer.getFullName()
-                );
-            }
-        } catch (Exception e) {
-            System.err.println("⚠️ Assignment email failed (non-critical): " + e.getMessage());
-        }
+        System.out.println("📧 TICKET ASSIGNED: " + saved.getTicketId() + " to " + engineer.getFullName());
 
         return saved;
     }
@@ -110,7 +85,6 @@ public class TicketService {
         Ticket ticket = ticketRepository.findById(ticketId)
             .orElseThrow(() -> new RuntimeException("Ticket not found"));
 
-        String oldStatus = ticket.getStatus();
         ticket.setStatus(status);
 
         if ("RESOLVED".equals(status)) {
@@ -119,20 +93,7 @@ public class TicketService {
 
         Ticket saved = ticketRepository.save(ticket);
 
-        // Send email notification on resolve
-        try {
-            if (!"RESOLVED".equals(oldStatus) && "RESOLVED".equals(status)) {
-                if (saved.getCreatedBy() != null && saved.getCreatedBy().getEmail() != null) {
-                    emailService.sendTicketResolvedEmail(
-                        saved.getCreatedBy().getEmail(),
-                        saved.getTicketId(),
-                        saved.getTitle()
-                    );
-                }
-            }
-        } catch (Exception e) {
-            System.err.println("⚠️ Resolution email failed (non-critical): " + e.getMessage());
-        }
+        System.out.println("📧 TICKET STATUS: " + saved.getTicketId() + " is now " + status);
 
         return saved;
     }
