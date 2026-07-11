@@ -44,6 +44,14 @@ public class UserService {
     }
 
     public User createUser(User user) {
+        // Check for duplicate username
+        if (userRepository.findByUsername(user.getUsername()).isPresent()) {
+            throw new RuntimeException("Username '" + user.getUsername() + "' already exists");
+        }
+        // Check for duplicate email
+        if (userRepository.findByEmail(user.getEmail()).isPresent()) {
+            throw new RuntimeException("Email '" + user.getEmail() + "' already exists");
+        }
         return userRepository.save(user);
     }
 

@@ -97,7 +97,10 @@ function Dashboard({ user, onLogout }) {
             setNewUser({ username: '', password: '', email: '', fullName: '', role: 'EMPLOYEE' });
             setShowCreateUserModal(false);
             fetchData();
-        } catch (err) { setUserError(err.response?.data || 'Failed to create user'); }
+        } catch (err) { 
+            const msg = err.response?.data?.error || err.response?.data?.message || err.response?.data || err.message || 'Failed to create user';
+            setUserError(msg); 
+        }
     };
 
     const handleEditUser = async (e) => {
@@ -112,7 +115,10 @@ function Dashboard({ user, onLogout }) {
             showAlert('✅ User updated successfully!', 'success');
             setShowEditUserModal(false);
             fetchData();
-        } catch (err) { setUserError(err.response?.data || 'Failed to update user'); }
+        } catch (err) { 
+            const msg = err.response?.data?.error || err.response?.data?.message || err.response?.data || err.message || 'Failed to update user';
+            setUserError(msg); 
+        }
     };
 
     const openEditModal = (u) => {
