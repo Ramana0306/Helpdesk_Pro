@@ -53,7 +53,6 @@ public class UserController {
             User created = userService.createUser(user);
             return ResponseEntity.ok(created);
         } catch (RuntimeException e) {
-            // Duplicate username/email or other validation error
             return ResponseEntity.status(HttpStatus.CONFLICT)
                 .body(Map.of("error", e.getMessage()));
         } catch (Exception e) {
@@ -67,7 +66,6 @@ public class UserController {
         return ResponseEntity.ok(userService.updateUser(id, user));
     }
 
-    // Endpoint for frontend to check active tickets before delete
     @GetMapping("/{id}/active-tickets")
     public ResponseEntity<Map<String, Object>> getActiveTickets(@PathVariable Long id) {
         Map<String, Integer> stats = userService.getUserTicketStats(id);
