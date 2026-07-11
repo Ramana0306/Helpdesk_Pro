@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import com.helpdesk.model.Ticket;
@@ -20,13 +21,15 @@ public class UserService {
 
     private final UserRepository userRepository;
     private final TicketRepository ticketRepository;
+    private final PasswordEncoder passwordEncoder;
 
     @PersistenceContext
     private EntityManager entityManager;
 
-    public UserService(UserRepository userRepository, TicketRepository ticketRepository) {
+    public UserService(UserRepository userRepository, TicketRepository ticketRepository, PasswordEncoder passwordEncoder) {
         this.userRepository = userRepository;
         this.ticketRepository = ticketRepository;
+        this.passwordEncoder = passwordEncoder;
     }
 
     public List<User> getAllUsers() {
@@ -42,11 +45,17 @@ public class UserService {
     }
 
     public User createUser(User user) {
+        // Check for duplicate username
         if (userRepository.findByUsername(user.getUsername()).isPresent()) {
             throw new RuntimeException("Username '" + user.getUsername() + "' already exists");
         }
+        // Check for duplicate email
         if (userRepository.findByEmail(user.getEmail()).isPresent()) {
             throw new RuntimeException("Email '" + user.getEmail() + "' already exists");
+        }
+        // Encode password before saving
+        if (user.getPassword() != null && !user.getPassword().isEmpty()) {
+            user.setPassword(passwordEncoder.encode(user.getPassword()));
         }
         return userRepository.save(user);
     }
@@ -54,14 +63,35 @@ public class UserService {
     public User updateUser(Long id, User updatedUser) {
         User user = userRepository.findById(id)
             .orElseThrow(() -> new RuntimeException("User not found"));
-        user.setFullName(updatedUser.getFullName());
-        user.setEmail(updatedUser.getEmail());
-        user.setUsername(updatedUser.getUsername());
-        user.setRole(updatedUser.getRole());
-        user.setActive(updatedUser.isActive());
-        if (updatedUser.getPassword() != null && !updatedUser.getPassword().isEmpty()) {
-            user.setPassword(updatedUser.getPassword());
+
+        // Check for duplicate email (only if email changed)
+        if (updatedUser.getEmail() != null && !updatedUser.getEmail().equals(user.getEmail())) {
+            if (userRepository.findByEmail(updatedUser.getEmail()).isPresent()) {
+                throw new RuntimeException("Email '" + updatedUser.getEmail() + "' already exists");
+            }
         }
+
+        // Update fields
+        if (updatedUser.getFullName() != null) {
+            user.setFullName(updatedUser.getFullName());
+        }
+        if (updatedUser.getEmail() != null) {
+            user.setEmail(updatedUser.getEmail());
+        }
+        // Only update username if provided
+        if (updatedUser.getUsername() != null && !updatedUser.getUsername().isEmpty()) {
+            user.setUsername(updatedUser.getUsername());
+        }
+        if (updatedUser.getRole() != null) {
+            user.setRole(updatedUser.getRole());
+        }
+        user.setActive(updatedUser.isActive());
+
+        // Only update password if provided and not empty
+        if (updatedUser.getPassword() != null && !updatedUser.getPassword().isEmpty()) {
+            user.setPassword(passwordEncoder.encode(updatedUser.getPassword()));
+        }
+
         return userRepository.save(user);
     }
 
